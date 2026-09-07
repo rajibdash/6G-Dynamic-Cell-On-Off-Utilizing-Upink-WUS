@@ -197,10 +197,54 @@ This call flow illustrates the internal protocol stack orchestration (L3/RRC, L2
 ```
 
 ---
+## 6. Draft Call Flow for Booster Carrier Sleep x.5
 
-## 6. 3GPP-Aligned Information Elements & Log Parameters
+```text
+  UE             Primary Carrier (Anchor)         eNodeB/gNodeB          Booster Carrier
+  |                         |                           |                       |
+  |================== ACTIVE STATE =====================|                       |
+  |                         |                           |                       |
+  |--- Uplink/Downlink Data |                           |                       |
+  |    Traffic              |                           |                       |
+  |<----------------------->|                           |                       |
+  |                         |                           |                       |
+  |                         |=== Traffic Monitored =====|                       |
+  |                         |    (Load below threshold) |                       |
+  |                         |                           |                       |
+  |                         |====================== SLEEP INITIATION ===========|
+  |                         |                           |                       |
+  |                         |                           |--- Deactivate Cell -->|
+  |                         |                           |    (Booster Sleep 1.5)|
+  |                         |                           |<----------------------|
+  |                         |<-- Update Available RIDs -|                       |
+  |                         |                           |                       |
+  |================== SLEEP STATE (Power Saved) ========|                       |
+  |                         |                           |                       |
+  |--- Sudden Traffic Burst |                           |                       |
+  |    (High Buffer/Load)   |                           |                       |
+  |<----------------------->|                           |                       |
+  |                         |                           |                       |
+  |                         |=== Threshold Exceeded ====|                       |
+  |                         |                           |                       |
+  |                         |====================== RAPID WAKE-UP SEQUENCE =====|
+  |                         |                           |                       |
+  |                         |                           |--- Fast Resume ------>|
+  |                         |                           |    (Transmitter ON)   |
+  |                         |                           |<----------------------|
+  |                         |<-- Cell Activated --------|                       |
+  |                         |                           |                       |
+  |================== DUAL CONNECTIVITY / CA RESUMED ===|                       |
+  |                         |                           |                       |
+  |--- CA Configuration/ ---|                           |                       |
+  |    Activation Command   |                           |                       |
+  |<------------------------|                           |                       |
+  |                         |                           |                       |
+  |<----------------------- High-Speed Data Flow (CA Active) ------------------>|
+```
 
-### 6.1 RRC Configuration Structure (ASN.1 Representation)
+## 7. 3GPP-Aligned Information Elements & Log Parameters
+
+### 7.1 RRC Configuration Structure (ASN.1 Representation)
 When configuring the UE to use UL WUS for an energy-saving secondary cell, the network injects specific fields into the `SCellToAddModList` within the `RRCReconfiguration` message:
 
 ```asn
@@ -226,7 +270,7 @@ SCellToAddMod-v1800 ::= SEQUENCE {
 }
 ```
 
-### 6.2 MAC Control Element (CE) Format
+### 7.2 MAC Control Element (CE) Format
 Once L1 detects the signal, the network confirms activation using a standardized **SCell Activation/Deactivation MAC CE**. For a system with up to 7 secondary cells, a single octet format is utilized:
 
 ```
@@ -237,7 +281,7 @@ Once L1 detects the signal, the network confirms activation using a standardized
 * **Ci Fields**: Set to `1` to confirm that SCell Index $i$ is immediately shifted into the **Active State** following the UL WUS interrupt pipeline.
 * **LCID (Logical Channel ID)**: Identifies this specific payload configuration as an Activation payload structure.
 
-### 6.3 Target L1 Protocol Log Fields
+### 7.3 Target L1 Protocol Log Fields
 Engineers inspecting cell logs at the physical layer look for these structural fields during trace validation:
 * `WUS_DETECTION_STATUS`: `DETECTED` / `FALSE_ALARM` / `NONE`
 * `WUS_MEASURED_RSSI`: Expected measurement target range between `-125 dBm` and `-70 dBm`.
@@ -246,7 +290,7 @@ Engineers inspecting cell logs at the physical layer look for these structural f
 
 ---
 
-## 7. Machine Learning Module for Adaptive Cell Activation
+## 8. Machine Learning Module for Adaptive Cell Activation
 
 To maximize network power savings while preventing latency drops, the gNB-CU/DU runs an **Intelligent Energy Management Loop**. It uses Q-Learning (Reinforcement Learning) to dynamically decide when to transition the cell to deep sleep or wake it up based on user traffic velocity and buffer status.
 
